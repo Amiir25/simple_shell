@@ -1,17 +1,25 @@
-#include "simple_shell.h"
+#include "shell.h"
 
+/**
+ * getline - Custom implementation of the getline function
+ * @lineptr: Pointer to the buffer where the line is stored
+ * @n: Size of the buffer
+ * @stream: Stream to read from (usually stdin)
+ *
+ * Return: Number of characters read, or -1 on failure
+ */
 ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 {
     static char buffer[1024];
     static size_t pos, length;
-    ssize_t bytes_read = 0;
-    char *line = *lineptr;
+    ssize_t num_read = 0;
+    char *newline;
 
-    if (!line || !*n) {
+    if (*lineptr == NULL || *n == 0) {
         *n = 1024;
-        line = malloc(*n);
-        if (!line)
-            return -1;
+        *lineptr = malloc(*n);
+        if (*lineptr == NULL)
+            return (-1);
     }
 
     while (1) {
@@ -19,26 +27,23 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream)
             pos = 0;
             length = read(fileno(stream), buffer, sizeof(buffer));
             if (length <= 0)
-                break;
+                return (-1);
         }
 
-        line[bytes_read++] = buffer[pos++];
-        if (bytes_read >= (ssize_t)(*n - 1)) {
+        (*lineptr)[num_read++] = buffer[pos++];
+
+        if (num_read >= *n) {
             *n += 1024;
-            line = realloc(line, *n);
-            if (!line)
-                return -1;
+            *lineptr = realloc(*lineptr, *n);
+            if (*lineptr == NULL)
+                return (-1);
         }
 
-        if (line[bytes_read - 1] == '\n')
+        if ((newline = strchr(*lineptr, '\n'))) {
+            *newline = '\0';
             break;
+        }
     }
 
-    line[bytes_read] = '\0';
-    *lineptr = line;
-
-    if (length == 0 && bytes_read == 0)
-        return -1;
-
-    return bytes_read;
+    return (num_read);
 }

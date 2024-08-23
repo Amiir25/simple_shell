@@ -1,22 +1,31 @@
 #include "simple_shell.h"
 
+/**
+ * main - Entry point of the shell program
+ * @argc: Argument count
+ * @argv: Argument vector
+ *
+ * Return: 0 on success, or other exit code on failure
+ */
 int main(int argc, char **argv)
 {
     char *command = NULL;
     char **args = NULL;
-    int status = 1;  
-  
-    if (argc == 2) {
-        // Execute commands from a file
+    int status = 1;
+
+    if (argc == 2)
+    {
+        /* Execute commands from a file */
         execute_file(argv[1]);
         exit(EXIT_SUCCESS);
     }
 
     do {
         if (isatty(STDIN_FILENO))
-            printf("($) ");  // Prompt
+            printf("($) ");  /* Prompt */
         command = read_command();
-        if (command == NULL) {
+        if (command == NULL)
+        {
             if (isatty(STDIN_FILENO))
                 printf("\n");
             break;
@@ -28,5 +37,5 @@ int main(int argc, char **argv)
         free(args);
     } while (status);
 
-    return 0;
+    return (0);
 }

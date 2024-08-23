@@ -7,7 +7,7 @@
  *
  * Return: 0 on success, or other exit code on failure
  */
- 
+
 int main(int argc, char **argv)
 {
 	char *command;
@@ -25,8 +25,7 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
 	}
 
-	do
-	{
+	do {
 		if (isatty(STDIN_FILENO))
 			printf("($) ");  /* Prompt */
 			command = read_command();

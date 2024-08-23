@@ -1,5 +1,5 @@
-#ifndef SHELL_H
-#define SHELL_H
+#ifndef SIMPLE_SHELL_H
+#define SIMPLE_SHELL_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,4 +37,4 @@ char *_strdup(const char *str);
 void handle_comments(char *line);
 char *search_path(char *command);
 
-#endif /* SHELL_H */
+#endif /* SIMPLE_SHELL_H */

@@ -1,20 +1,4 @@
-#include "shell.h"
-
-/**
- * shell_exit - Exits the shell
- * @args: Arguments passed to the command
- *
- * Return: Doesn't return (terminates the shell)
- */
-int shell_exit(char **args)
-{
-    int status = 0;
-
-    if (args[1])
-        status = atoi(args[1]);
-
-    exit(status);
-}
+#include "simple_shell.h"
 
 /**
  * shell_env - Prints the environment variables
@@ -22,19 +6,22 @@ int shell_exit(char **args)
  *
  * Return: 1 on success
  */
+
 int shell_env(char **args)
 {
-    char **env = environ;
+	char **env;
 
-    (void)args;  /* Suppress unused variable warning */
+	env = environ;
 
-    while (*env)
-    {
-        printf("%s\n", *env);
-        env++;
-    }
+	(void)args;  /* Suppress unused variable warning */
 
-    return (1);
+	while (*env)
+	{
+		printf("%s\n", *env);
+		env++;
+	}
+
+	return (1);
 }
 
 /**
@@ -43,54 +30,53 @@ int shell_env(char **args)
  *
  * Return: 1 on success, -1 on failure
  */
+
 int shell_cd(char **args)
 {
-    char *dir = args[1];
-    char cwd[1024];
+	char *dir = args[1];
+	char cwd[1024];
 
-    if (dir == NULL)
-    {
-        dir = getenv("HOME");
-    }
-    else if (_strcmp(dir, "-") == 0)
-    {
-        dir = getenv("OLDPWD");
-        if (dir)
-            printf("%s\n", dir);
-    }
+	if (dir == NULL)
+		dir = getenv("HOME");
 
-    if (chdir(dir) != 0)
-    {
-        perror("hsh");
-        return (1);
-    }
+	else if (_strcmp(dir, "-") == 0)
+	{
+		dir = getenv("OLDPWD");
+		if (dir)
+			printf("%s\n", dir);
+	}
 
-    setenv("OLDPWD", getenv("PWD"), 1);
-    setenv("PWD", getcwd(cwd, sizeof(cwd)), 1);
+	if (chdir(dir) != 0)
+	{
+		perror("hsh");
+		return (1);
+	}
 
-    return (1);
+	setenv("OLDPWD", getenv("PWD"), 1);
+	setenv("PWD", getcwd(cwd, sizeof(cwd)), 1);
+
+	return (1);
 }
 
 /**
- * shell_setenv - Initializes a new environment variable or modifies an existing one
+ * shell_setenv - Initializes or modifies an environment variable
  * @args: Arguments passed to the command
  *
  * Return: 1 on success, -1 on failure
  */
+
 int shell_setenv(char **args)
 {
-    if (args[1] && args[2])
-    {
-        if (setenv(args[1], args[2], 1) != 0)
-        {
-            perror("hsh");
-        }
-    }
-    else
-    {
-        fprintf(stderr, "hsh: setenv VARIABLE VALUE\n");
-    }
-    return (1);
+	if (args[1] && args[2])
+	{
+		if (setenv(args[1], args[2], 1) != 0)
+			perror("hsh");
+	}
+
+	else
+		fprintf(stderr, "hsh: setenv VARIABLE VALUE\n");
+
+	return (1);
 }
 
 /**
@@ -99,31 +85,31 @@ int shell_setenv(char **args)
  *
  * Return: 1 on success, -1 on failure
  */
+
 int shell_unsetenv(char **args)
 {
-    if (args[1])
-    {
-        if (unsetenv(args[1]) != 0)
-        {
-            perror("hsh");
-        }
-    }
-    else
-    {
-        fprintf(stderr, "hsh: unsetenv VARIABLE\n");
-    }
-    return (1);
+	if (args[1])
+	{
+		if (unsetenv(args[1]) != 0)
+			perror("hsh");
+	}
+
+	else
+		fprintf(stderr, "hsh: unsetenv VARIABLE\n");
+
+	return (1);
 }
 
 /**
- * shell_alias - Handles the alias command (currently a placeholder)
+ * shell_alias - Handles the alias command
  * @args: Arguments passed to the command
  *
  * Return: 1 on success
  */
+
 int shell_alias(char **args)
 {
-    /* Placeholder for alias functionality */
-    (void)args;
-    return (1);
+	/* Placeholder for alias functionality */
+	(void)args;
+	return (1);
 }

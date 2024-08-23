@@ -45,3 +45,23 @@ int main(int argc, char **argv)
 
 	return (0);
 }
+
+
+/**
+ * shell_exit - Exits the shell
+ * @args: Arguments passed to the command
+ *
+ * Return: Doesn't return (terminates the shell)
+ */
+
+int shell_exit(char **args)
+{
+	int status;
+
+	status = 0;
+
+	if (args[1])
+		status = atoi(args[1]);
+
+	exit(status);
+}

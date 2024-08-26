@@ -75,19 +75,20 @@ char **parse_command(char *line)
 
 int execute_command(char **args)
 {
+	int i;
 	char *builtin_str[50];
 
-	int (*builtin_func[])(char **);
+	int (*builtin_func[100])(char **);
 	int num_builtins;
 	char *command;
 
 	builtin_str[] = {"exit", "env", "cd", "setenv", "unsetenv", "alias"};
-	(*builtin_func[])(char **) = {&shell_exit, &shell_env, &shell_cd,
+	(*builtin_func[100])(char **) = {&shell_exit, &shell_env, &shell_cd,
 					&shell_setenv, &shell_unsetenv, &shell_alias};
 	num_builtins = sizeof(builtin_str) / sizeof(char *);
 	if (args[0] == NULL)
 		return (1);
-	for (int i = 0; i < num_builtins; i++)
+	for (i = 0; i < num_builtins; i++)
 	{
 		if (_strcmp(args[0], builtin_str[i]) == 0)
 		return ((*builtin_func[i])(args));

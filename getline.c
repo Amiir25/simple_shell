@@ -24,7 +24,6 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 		if (*lineptr == NULL)
 			return (-1);
 	}
-
 	while (1)
 	{
 		if (pos >= length)
@@ -35,8 +34,7 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 				return (-1);
 		}
 		(*lineptr)[num_read++] = buffer[pos++];
-
-		if (num_read >= *n)
+		if ((size_t)num_read >= *n)
 		{
 			*n += 1024;
 			*lineptr = realloc(*lineptr, *n);
@@ -50,5 +48,6 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 			break;
 		}
 	}
+
 	return (num_read);
 }

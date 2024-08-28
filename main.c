@@ -1,10 +1,12 @@
 #include "simple_shell.h"
 
+#include "shell.h"
+
 /**
  * main - Entry point for the shell.
  * @argc: Argument count.
  * @argv: Argument vector.
- * 
+ *
  * Return: Exit status of the shell.
  */
 int main(int argc, char **argv)
@@ -25,4 +27,3 @@ int main(int argc, char **argv)
 
     return (0);
 }
-

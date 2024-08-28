@@ -41,40 +41,10 @@ void shell_loop(char *program_name)
 }
 
 /**
- * strip_comments - Removes comments from the command line.
- * @line: The input line to process.
- */
-void strip_comments(char *line)
-{
-    char *comment = strchr(line, '#');
-    if (comment)
-        *comment = '\0';
-}
-
-/**
- * split_commands - Splits a line into multiple commands separated by ';'.
- * @line: The input line to split.
- * @commands: The array to store the commands.
- */
-void split_commands(char *line, char **commands)
-{
-    char *command;
-    int i = 0;
-
-    command = strtok(line, ";");
-    while (command != NULL)
-    {
-        commands[i++] = command;
-        command = strtok(NULL, ";");
-    }
-    commands[i] = NULL;
-}
-
-/**
  * execute_command_line - Executes a single command line.
  * @line: The command line to execute.
  * @program_name: The name of the program (argv[0]).
- * 
+ *
  * Return: 1 if the shell should continue running, 0 if it should terminate.
  */
 int execute_command_line(char *line, char *program_name)
@@ -106,7 +76,7 @@ int execute_command_line(char *line, char *program_name)
  * handle_logical_operators - Handles '&&' and '||' logical operators.
  * @line: The input line containing the command.
  * @program_name: The name of the program (argv[0]).
- * 
+ *
  * Return: 1 if the shell should continue running, 0 if it should terminate.
  */
 int handle_logical_operators(char *line, char *program_name)
@@ -150,44 +120,10 @@ int handle_logical_operators(char *line, char *program_name)
 }
 
 /**
- * replace_variables - Handles variable replacements in the arguments.
- * @args: The array of arguments.
- */
-void replace_variables(char **args)
-{
-    for (int i = 0; args[i] != NULL; i++)
-    {
-        if (strcmp(args[i], "$$") == 0)
-        {
-            char pid_str[12];
-            snprintf(pid_str, 12, "%d", getpid());
-            free(args[i]);
-            args[i] = strdup(pid_str);
-        }
-        else if (strcmp(args[i], "$?") == 0)
-        {
-            char status_str[12];
-            snprintf(status_str, 12, "%d", WEXITSTATUS(last_exit_status));
-            free(args[i]);
-            args[i] = strdup(status_str);
-        }
-        else if (args[i][0] == '$' && args[i][1] != '\0')
-        {
-            char *env_value = getenv(args[i] + 1);
-            if (env_value)
-            {
-                free(args[i]);
-                args[i] = strdup(env_value);
-            }
-        }
-    }
-}
-
-/**
  * execute_command - Executes a command.
  * @args: Array of arguments.
  * @program_name: The name of the program (argv[0]).
- * 
+ *
  * Return: 1 if the shell should continue running, 0 if it should terminate.
  */
 int execute_command(char **args, char *program_name)
@@ -278,4 +214,38 @@ int execute_command(char **args, char *program_name)
 
     free(cmd_path);
     return (1);
+}
+
+/**
+ * replace_variables - Handles variable replacements in the arguments.
+ * @args: The array of arguments.
+ */
+void replace_variables(char **args)
+{
+    for (int i = 0; args[i] != NULL; i++)
+    {
+        if (strcmp(args[i], "$$") == 0)
+        {
+            char pid_str[12];
+            snprintf(pid_str, 12, "%d", getpid());
+            free(args[i]);
+            args[i] = strdup(pid_str);
+        }
+        else if (strcmp(args[i], "$?") == 0)
+        {
+            char status_str[12];
+            snprintf(status_str, 12, "%d", WEXITSTATUS(last_exit_status));
+            free(args[i]);
+            args[i] = strdup(status_str);
+        }
+        else if (args[i][0] == '$' && args[i][1] != '\0')
+        {
+            char *env_value = getenv(args[i] + 1);
+            if (env_value)
+            {
+                free(args[i]);
+                args[i] = strdup(env_value);
+            }
+        }
+    }
 }

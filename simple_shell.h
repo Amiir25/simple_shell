@@ -20,6 +20,7 @@ extern char **environ;
 char *read_command(void);
 char **parse_command(char *line);
 int execute_command(char **args);
+int launch_process(char **args);
 void execute_file(const char *filename);
 
 /* Built-in commands */

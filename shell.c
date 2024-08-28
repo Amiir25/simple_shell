@@ -68,58 +68,48 @@ char **parse_command(char *line)
 
 /**
  * execute_command - Executes a command
- * @args: The array of arguments
+ * @args: Array of arguments (command and its arguments)
  *
- * Return: 1 if the shell should continue, 0 if it should terminate
+ * Return: 1 if the shell should continue running, 0 if it should terminate
  */
-
 int execute_command(char **args)
 {
-	int i;
-	char *builtin_str[50];
-
-	int (*builtin_func[100])(char **);
-	int num_builtins;
 	char *command;
+	int i;
+	int num_builtins;
 
-	builtin_str[] = {"exit", "env", "cd", "setenv", "unsetenv", "alias"};
-	(*builtin_func[100])(char **) = {&shell_exit, &shell_env, &shell_cd,
-					&shell_setenv, &shell_unsetenv, &shell_alias};
+	const char *builtin_str[] = {
+		"exit", "env", "cd", "setenv",
+		"unsetenv", "alias"
+		};
+
+	int (*builtin_func[])(char **) = {
+		&shell_exit, &shell_env, &shell_cd,
+		&shell_setenv, &shell_unsetenv, &shell_alias
+	};
 	num_builtins = sizeof(builtin_str) / sizeof(char *);
+
 	if (args[0] == NULL)
 		return (1);
+
 	for (i = 0; i < num_builtins; i++)
 	{
 		if (_strcmp(args[0], builtin_str[i]) == 0)
-		return ((*builtin_func[i])(args));
+			return ((*builtin_func[i])(args));
 	}
+
 	command = search_path(args[0]);
 	if (command)
 	{
-		pid_t pid = fork();
-
-		if (pid == 0)
-		{
-			if (execve(command, args, environ) == -1)
-			perror(args[0]);
-			exit(EXIT_FAILURE);
-		}
-		else if (pid < 0)
-			perror("hsh");
-		else
-		{
-			int status;
-
-			do {
-				waitpid(pid, &status, WUNTRACED);
-			} while (!WIFEXITED(status) && !WIFSIGNALED(status));
-		}
+		launch_process(args);
 		free(command);
 	}
 	else
 		fprintf(stderr, "%s: command not found\n", args[0]);
+
 	return (1);
 }
+
 
 /**
  * execute_file - Executes commands from a file

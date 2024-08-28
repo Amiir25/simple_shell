@@ -13,7 +13,7 @@ void shell_loop(char *program_name)
     while (status)
     {
         printf("$ ");
-        line = read_line();
+        line = custom_getline();
         if (line == NULL)
         {
             if (feof(stdin))
@@ -25,7 +25,7 @@ void shell_loop(char *program_name)
             continue;
         }
 
-        tokenize(line, args);
+        custom_tokenize(line, args);
         status = execute_command(args, program_name);
 
         free(line);
@@ -33,48 +33,76 @@ void shell_loop(char *program_name)
 }
 
 /**
- * read_line - Reads a line from stdin.
+ * custom_getline - Custom implementation of getline function.
  * 
  * Return: The input string.
  */
-char *read_line(void)
+char *custom_getline(void)
 {
-    char *line = NULL;
-    size_t bufsize = 0;
+    size_t bufsize = MAX_LINE_LEN;
+    size_t position = 0;
+    char *buffer = malloc(sizeof(char) * bufsize);
+    int c;
 
-    if (getline(&line, &bufsize, stdin) == -1)
+    if (!buffer)
     {
-        if (feof(stdin))
+        perror("Unable to allocate buffer");
+        exit(EXIT_FAILURE);
+    }
+
+    while (1)
+    {
+        c = getchar();
+
+        if (c == EOF || c == '\n')
         {
-            free(line);
-            return (NULL);
+            buffer[position] = '\0';
+            return buffer;
         }
         else
         {
-            perror("read_line");
-            free(line);
-            exit(EXIT_FAILURE);
+            buffer[position] = c;
+        }
+        position++;
+
+        if (position >= bufsize)
+        {
+            bufsize += MAX_LINE_LEN;
+            buffer = realloc(buffer, bufsize);
+            if (!buffer)
+            {
+                perror("Unable to allocate buffer");
+                exit(EXIT_FAILURE);
+            }
         }
     }
-
-    return (line);
 }
 
 /**
- * tokenize - Splits a string into an array of arguments.
+ * custom_tokenize - Splits a string into an array of arguments.
  * @line: The input line to split.
  * @args: The array to store the arguments.
  */
-void tokenize(char *line, char **args)
+void custom_tokenize(char *line, char **args)
 {
-    char *token;
     int i = 0;
+    char *start = line;
+    char *end;
 
-    token = strtok(line, DELIM);
-    while (token != NULL)
+    while (*start)
     {
-        args[i++] = token;
-        token = strtok(NULL, DELIM);
+        while (*start && strchr(DELIM, *start))
+            start++;
+
+        end = start;
+        while (*end && !strchr(DELIM, *end))
+            end++;
+
+        if (start == end)
+            break;
+
+        args[i++] = strndup(start, end - start);
+        start = end;
     }
     args[i] = NULL;
 }
@@ -99,13 +127,42 @@ int execute_command(char **args, char *program_name)
     /* Handle the exit built-in */
     if (strcmp(args[0], "exit") == 0)
     {
-        return (0); /* Exit the shell */
+        if (args[1])
+            exit(atoi(args[1]));
+        return (0);
     }
 
     /* Handle the env built-in */
     if (strcmp(args[0], "env") == 0)
     {
         print_env();
+        return (1);
+    }
+
+    /* Handle the setenv built-in */
+    if (strcmp(args[0], "setenv") == 0)
+    {
+        if (args[1] && args[2])
+            set_env(args[1], args[2]);
+        else
+            fprintf(stderr, "%s: setenv: Missing arguments\n", program_name);
+        return (1);
+    }
+
+    /* Handle the unsetenv built-in */
+    if (strcmp(args[0], "unsetenv") == 0)
+    {
+        if (args[1])
+            unset_env(args[1]);
+        else
+            fprintf(stderr, "%s: unsetenv: Missing argument\n", program_name);
+        return (1);
+    }
+
+    /* Handle the cd built-in */
+    if (strcmp(args[0], "cd") == 0)
+    {
+        change_directory(args[1]);
         return (1);
     }
 
@@ -140,44 +197,62 @@ int execute_command(char **args, char *program_name)
 }
 
 /**
- * find_command - Searches for a command in the directories listed in PATH.
- * @command: The command to search for.
- * 
- * Return: The full path of the command if found, otherwise NULL.
+ * set_env - Initialize or modify an environment variable.
+ * @name: Name of the environment variable.
+ * @value: Value to set.
  */
-char *find_command(char *command)
+void set_env(const char *name, const char *value)
 {
-    char *path = getenv("PATH");
-    char *path_copy = strdup(path);
-    char *token = strtok(path_copy, ":");
-    char *cmd_path = malloc(MAX_PATH_LEN);
-
-    while (token != NULL)
+    if (setenv(name, value, 1) == -1)
     {
-        snprintf(cmd_path, MAX_PATH_LEN, "%s/%s", token, command);
-        if (access(cmd_path, X_OK) == 0)
-        {
-            free(path_copy);
-            return cmd_path;
-        }
-        token = strtok(NULL, ":");
+        perror("setenv");
     }
-
-    free(path_copy);
-    free(cmd_path);
-    return (NULL);
 }
 
 /**
- * print_env - Prints the current environment variables.
+ * unset_env - Remove an environment variable.
+ * @name: Name of the environment variable.
  */
-void print_env(void)
+void unset_env(const char *name)
 {
-    char **env = environ;
-
-    while (*env)
+    if (unsetenv(name) == -1)
     {
-        printf("%s\n", *env);
-        env++;
+        perror("unsetenv");
     }
+}
+
+/**
+ * change_directory - Changes the current directory.
+ * @path: Path to the directory.
+ */
+void change_directory(const char *path)
+{
+    char *new_path;
+    char cwd[MAX_PATH_LEN];
+
+    if (!path || strcmp(path, "~") == 0)
+    {
+        new_path = getenv("HOME");
+    }
+    else if (strcmp(path, "-") == 0)
+    {
+        new_path = getenv("OLDPWD");
+    }
+    else
+    {
+        new_path = strdup(path);
+    }
+
+    if (chdir(new_path) != 0)
+    {
+        perror("cd");
+    }
+    else
+    {
+        setenv("OLDPWD", getenv("PWD"), 1);
+        setenv("PWD", getcwd(cwd, sizeof(cwd)), 1);
+    }
+
+    if (new_path != path)
+        free(new_path);
 }

@@ -96,10 +96,31 @@ int execute_command(char **args, char *program_name)
         return (1); /* Empty command */
     }
 
+    /* Handle the exit built-in */
+    if (strcmp(args[0], "exit") == 0)
+    {
+        return (0); /* Exit the shell */
+    }
+
+    /* Handle the env built-in */
+    if (strcmp(args[0], "env") == 0)
+    {
+        print_env();
+        return (1);
+    }
+
+    /* Check if command is in PATH */
+    char *cmd_path = find_command(args[0]);
+    if (cmd_path == NULL)
+    {
+        fprintf(stderr, "%s: command not found: %s\n", program_name, args[0]);
+        return (1);
+    }
+
     pid = fork();
     if (pid == 0)
     {
-        if (execve(args[0], args, environ) == -1)
+        if (execve(cmd_path, args, environ) == -1)
         {
             perror(program_name);
         }
@@ -114,5 +135,49 @@ int execute_command(char **args, char *program_name)
         wait(&status);
     }
 
+    free(cmd_path);
     return (1);
+}
+
+/**
+ * find_command - Searches for a command in the directories listed in PATH.
+ * @command: The command to search for.
+ * 
+ * Return: The full path of the command if found, otherwise NULL.
+ */
+char *find_command(char *command)
+{
+    char *path = getenv("PATH");
+    char *path_copy = strdup(path);
+    char *token = strtok(path_copy, ":");
+    char *cmd_path = malloc(MAX_PATH_LEN);
+
+    while (token != NULL)
+    {
+        snprintf(cmd_path, MAX_PATH_LEN, "%s/%s", token, command);
+        if (access(cmd_path, X_OK) == 0)
+        {
+            free(path_copy);
+            return cmd_path;
+        }
+        token = strtok(NULL, ":");
+    }
+
+    free(path_copy);
+    free(cmd_path);
+    return (NULL);
+}
+
+/**
+ * print_env - Prints the current environment variables.
+ */
+void print_env(void)
+{
+    char **env = environ;
+
+    while (*env)
+    {
+        printf("%s\n", *env);
+        env++;
+    }
 }

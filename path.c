@@ -9,25 +9,23 @@
 
 char *find_command(char *command)
 {
-    char *path = getenv("PATH");
-    char *token;
-    char full_path[1024];
+	char *path;
+	char *token;
+	char full_path[1024];
 
-    if (command[0] == '/' || command[0] == '.')
-    {
-        return (strdup(command));
-    }
+	path = getenv("PATH");
+	if (command[0] == '/' || command[0] == '.')
+		return (strdup(command));
 
-    token = strtok(path, ":");
-    while (token != NULL)
-    {
-        snprintf(full_path, sizeof(full_path), "%s/%s", token, command);
-        if (access(full_path, X_OK) == 0)
-        {
-            return (strdup(full_path));
-        }
-        token = strtok(NULL, ":");
-    }
+	token = strtok(path, ":");
+	while (token != NULL)
+	{
+		snprintf(full_path, sizeof(full_path), "%s/%s", token, command);
+		if (access(full_path, X_OK) == 0)
+			return (strdup(full_path));
 
-    return (NULL);
+		token = strtok(NULL, ":");
+	}
+
+	return (NULL);
 }

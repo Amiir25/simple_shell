@@ -20,6 +20,7 @@ int last_exit_status;
 void shell_loop(char *program_name);
 int execute_command_line(char *line, char *program_name);
 int execute_command(char **args, char *program_name);
+int handle_builtin(char **args, char *program_name);
 void replace_variables(char **args);
 int handle_logical_operators(char *line, char *program_name);
 

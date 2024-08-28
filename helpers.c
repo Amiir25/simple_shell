@@ -5,20 +5,24 @@
  *
  * Return: The read line, or NULL on failure.
  */
+
 char *custom_getline(void)
 {
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
+	char *line;
+	size_t len0;
+	ssize_t read;
 
-    read = getline(&line, &len, stdin);
-    if (read == -1)
-    {
-        free(line);
-        return (NULL);
-    }
+	line = NULL;
+	len0 = 0;
 
-    return (line);
+	read = getline(&line, &len0, stdin);
+	if (read == -1)
+	{
+		free(line);
+		return (NULL);
+	}
+
+	return (line);
 }
 
 /**
@@ -26,29 +30,34 @@ char *custom_getline(void)
  * @line: The line to tokenize.
  * @args: The array to store the tokens.
  */
+
 void custom_tokenize(char *line, char **args)
 {
-    char *token;
-    int i = 0;
+	int i;
+	char *token;
 
-    token = strtok(line, DELIM);
-    while (token != NULL && i < MAX_ARGS - 1)
-    {
-        args[i++] = token;
-        token = strtok(NULL, DELIM);
-    }
-    args[i] = NULL;
+	i = 0;
+	token = strtok(line, DELIM);
+	while (token != NULL && i < MAX_ARGS - 1)
+	{
+		args[i++] = token;
+		token = strtok(NULL, DELIM);
+	}
+	args[i] = NULL;
 }
 
 /**
  * strip_comments - Removes comments from the command line.
  * @line: The input line to process.
  */
+
 void strip_comments(char *line)
 {
-    char *comment = strchr(line, '#');
-    if (comment)
-        *comment = '\0';
+	char *comment;
+
+	comment = strchr(line, '#');
+	if (comment)
+		*comment = '\0';
 }
 
 /**
@@ -56,16 +65,18 @@ void strip_comments(char *line)
  * @line: The input line to split.
  * @commands: The array to store the commands.
  */
+
 void split_commands(char *line, char **commands)
 {
-    char *command;
-    int i = 0;
+	int i;
+	char *command;
 
-    command = strtok(line, ";");
-    while (command != NULL)
-    {
-        commands[i++] = command;
-        command = strtok(NULL, ";");
-    }
-    commands[i] = NULL;
+	i = 0;
+	command = strtok(line, ";");
+	while (command != NULL)
+	{
+		commands[i++] = command;
+		command = strtok(NULL, ";");
+	}
+	commands[i] = NULL;
 }

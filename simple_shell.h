@@ -1,41 +1,40 @@
-#ifndef SIMPLE_SHELL_H
-#define SIMPLE_SHELL_H
+#ifndef SHELL_H
+#define SHELL_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <fcntl.h>
 
-extern char **environ;
-
-#define MAX_ARGS 64
+#define MAX_COMMANDS 10
+#define MAX_ARGS 20
 #define DELIM " \t\r\n\a"
 
-/* Function Prototypes */
-char *read_command(void);
-char **parse_command(char *line);
-int execute_command(char **args);
-int launch_process(char **args);
-void execute_file(const char *filename);
+extern char **environ;
+int last_exit_status;
 
-/* Built-in commands */
-int shell_exit(char **args);
-int shell_env(char **args);
-int shell_cd(char **args);
-int shell_setenv(char **args);
-int shell_unsetenv(char **args);
-int shell_alias(char **args);
+/* Function prototypes */
+void shell_loop(char *program_name);
+int execute_command_line(char *line, char *program_name);
+int execute_command(char **args, char *program_name);
+void replace_variables(char **args);
+int handle_logical_operators(char *line, char *program_name);
 
-/* Helper functions */
-int _strcmp(const char *s1, const char *s2);
-int _strlen(const char *str);
-char *_strdup(const char *str);
-void handle_comments(char *line);
-char *search_path(char *command);
+void print_env(void);
+void set_env(const char *name, const char *value);
+void unset_env(const char *name);
+void change_directory(const char *path);
+void handle_alias(char **args);
 
-#endif /* SIMPLE_SHELL_H */
+void strip_comments(char *line);
+void split_commands(char *line, char **commands);
+void custom_tokenize(char *line, char **args);
+char *custom_getline(void);
+char *find_command(char *command);
+
+void execute_from_file(const char *filename, char *program_name);
+
+#endif /* SHELL_H */

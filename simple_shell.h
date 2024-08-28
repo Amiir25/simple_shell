@@ -14,7 +14,7 @@
 #define DELIM " \t\r\n\a"
 
 extern char **environ;
-int last_exit_status;
+extern int last_exit_status;
 
 /* Function prototypes */
 void shell_loop(char *program_name);

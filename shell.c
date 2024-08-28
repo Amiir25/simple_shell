@@ -1,5 +1,7 @@
 #include "simple_shell.h"
 
+int last_exit_status = 0;
+
 /**
  * execute_command_line - Executes a single command line.
  * @line: The command line to execute.

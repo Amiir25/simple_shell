@@ -1,147 +1,118 @@
 #include "simple_shell.h"
 
 /**
- * read_command - Reads a command from stdin
- *
- * Return: The command string, or NULL on failure
+ * shell_loop - Main loop for the shell.
+ * @program_name: The name of the program (argv[0]).
  */
-
-char *read_command(void)
+void shell_loop(char *program_name)
 {
-	char *line = NULL;
-	size_t len = 0;
+    char *line;
+    char *args[MAX_ARGS];
+    int status = 1;
 
-	if (getline(&line, &len, stdin) == -1)
-	{
-		free(line);
-		return (NULL);
-	}
+    while (status)
+    {
+        printf("$ ");
+        line = read_line();
+        if (line == NULL)
+        {
+            if (feof(stdin))
+            {
+                printf("\n");
+                break;
+            }
+            perror(program_name);
+            continue;
+        }
 
-	handle_comments(line);
-	return (line);
+        tokenize(line, args);
+        status = execute_command(args, program_name);
+
+        free(line);
+    }
 }
 
 /**
- * parse_command - Splits a command into an array of arguments
- * @line: The command string
- *
- * Return: An array of arguments, or NULL on failure
+ * read_line - Reads a line from stdin.
+ * 
+ * Return: The input string.
  */
-
-char **parse_command(char *line)
+char *read_line(void)
 {
-	int bufsize, position;
-	char **tokens;
-	char *token;
+    char *line = NULL;
+    size_t bufsize = 0;
 
-	bufsize = MAX_ARGS;
-	position = 0;
-	tokens = malloc(bufsize * sizeof(char *));
-	if (!tokens)
-	{
-		fprintf(stderr, "hsh: allocation error\n");
-		exit(EXIT_FAILURE);
-	}
+    if (getline(&line, &bufsize, stdin) == -1)
+    {
+        if (feof(stdin))
+        {
+            free(line);
+            return (NULL);
+        }
+        else
+        {
+            perror("read_line");
+            free(line);
+            exit(EXIT_FAILURE);
+        }
+    }
 
-	token = strtok(line, DELIM);
-	while (token != NULL)
-	{
-		tokens[position++] = token;
-
-		if (position >= bufsize)
-		{
-			bufsize += MAX_ARGS;
-			tokens = realloc(tokens, bufsize * sizeof(char *));
-			if (!tokens)
-			{
-				fprintf(stderr, "hsh: allocation error\n");
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		token = strtok(NULL, DELIM);
-	}
-
-	tokens[position] = NULL;
-	return (tokens);
+    return (line);
 }
 
 /**
- * execute_command - Executes a command
- * @args: Array of arguments (command and its arguments)
- *
- * Return: 1 if the shell should continue running, 0 if it should terminate
+ * tokenize - Splits a string into an array of arguments.
+ * @line: The input line to split.
+ * @args: The array to store the arguments.
  */
-int execute_command(char **args)
+void tokenize(char *line, char **args)
 {
-	char *command;
-	int i;
-	int num_builtins;
+    char *token;
+    int i = 0;
 
-	const char *builtin_str[] = {
-		"exit", "env", "cd", "setenv",
-		"unsetenv", "alias"
-		};
-
-	int (*builtin_func[])(char **) = {
-		&shell_exit, &shell_env, &shell_cd,
-		&shell_setenv, &shell_unsetenv, &shell_alias
-	};
-	num_builtins = sizeof(builtin_str) / sizeof(char *);
-
-	if (args[0] == NULL)
-		return (1);
-
-	for (i = 0; i < num_builtins; i++)
-	{
-		if (_strcmp(args[0], builtin_str[i]) == 0)
-			return ((*builtin_func[i])(args));
-	}
-
-	command = search_path(args[0]);
-	if (command)
-	{
-		launch_process(args);
-		free(command);
-	}
-	else
-		fprintf(stderr, "%s: command not found\n", args[0]);
-
-	return (1);
+    token = strtok(line, DELIM);
+    while (token != NULL)
+    {
+        args[i++] = token;
+        token = strtok(NULL, DELIM);
+    }
+    args[i] = NULL;
 }
 
-
 /**
- * execute_file - Executes commands from a file
- * @filename: The name of the file containing commands
+ * execute_command - Executes a command.
+ * @args: Array of arguments.
+ * @program_name: The name of the program (argv[0]).
+ * 
+ * Return: 1 if the shell should continue running, 0 if it should terminate.
  */
-
-void execute_file(const char *filename)
+int execute_command(char **args, char *program_name)
 {
-	FILE *file;
-	char *line;
-	char **args;
-	size_t len;
-	ssize_t nread;
+    pid_t pid;
+    int status;
 
-	file = fopen(filename, "r");
-	line = NULL;
-	len = 0;
+    if (args[0] == NULL)
+    {
+        return (1); /* Empty command */
+    }
 
-	if (file == NULL)
-	{
-		perror("hsh");
-		exit(EXIT_FAILURE);
-	}
+    pid = fork();
+    if (pid == 0)
+    {
+        if (execve(args[0], args, environ) == -1)
+        {
+            perror(program_name);
+        }
+        exit(EXIT_FAILURE);
+    }
+    else if (pid < 0)
+    {
+        perror("fork");
+    }
+    else
+    {
+        wait(&status);
+    }
 
-	while ((nread = getline(&line, &len, file)) != -1)
-	{
-		handle_comments(line);
-		args = parse_command(line);
-		execute_command(args);
-		free(args);
-	}
-
-	free(line);
-	fclose(file);
+    return (1);
 }

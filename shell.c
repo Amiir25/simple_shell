@@ -7,7 +7,7 @@
 void shell_loop(char *program_name)
 {
     char *line;
-    char *args[MAX_ARGS];
+    char *commands[MAX_COMMANDS];
     int status = 1;
 
     while (status)
@@ -25,86 +25,162 @@ void shell_loop(char *program_name)
             continue;
         }
 
-        custom_tokenize(line, args);
-        status = execute_command(args, program_name);
+        /* Handle comments */
+        strip_comments(line);
+
+        /* Split line into multiple commands separated by ';' */
+        split_commands(line, commands);
+
+        for (int i = 0; commands[i] != NULL && status; i++)
+        {
+            status = execute_command_line(commands[i], program_name);
+        }
 
         free(line);
     }
 }
 
 /**
- * custom_getline - Custom implementation of getline function.
- * 
- * Return: The input string.
+ * strip_comments - Removes comments from the command line.
+ * @line: The input line to process.
  */
-char *custom_getline(void)
+void strip_comments(char *line)
 {
-    size_t bufsize = MAX_LINE_LEN;
-    size_t position = 0;
-    char *buffer = malloc(sizeof(char) * bufsize);
-    int c;
-
-    if (!buffer)
-    {
-        perror("Unable to allocate buffer");
-        exit(EXIT_FAILURE);
-    }
-
-    while (1)
-    {
-        c = getchar();
-
-        if (c == EOF || c == '\n')
-        {
-            buffer[position] = '\0';
-            return buffer;
-        }
-        else
-        {
-            buffer[position] = c;
-        }
-        position++;
-
-        if (position >= bufsize)
-        {
-            bufsize += MAX_LINE_LEN;
-            buffer = realloc(buffer, bufsize);
-            if (!buffer)
-            {
-                perror("Unable to allocate buffer");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
+    char *comment = strchr(line, '#');
+    if (comment)
+        *comment = '\0';
 }
 
 /**
- * custom_tokenize - Splits a string into an array of arguments.
+ * split_commands - Splits a line into multiple commands separated by ';'.
  * @line: The input line to split.
- * @args: The array to store the arguments.
+ * @commands: The array to store the commands.
  */
-void custom_tokenize(char *line, char **args)
+void split_commands(char *line, char **commands)
 {
+    char *command;
     int i = 0;
-    char *start = line;
-    char *end;
 
-    while (*start)
+    command = strtok(line, ";");
+    while (command != NULL)
     {
-        while (*start && strchr(DELIM, *start))
-            start++;
-
-        end = start;
-        while (*end && !strchr(DELIM, *end))
-            end++;
-
-        if (start == end)
-            break;
-
-        args[i++] = strndup(start, end - start);
-        start = end;
+        commands[i++] = command;
+        command = strtok(NULL, ";");
     }
-    args[i] = NULL;
+    commands[i] = NULL;
+}
+
+/**
+ * execute_command_line - Executes a single command line.
+ * @line: The command line to execute.
+ * @program_name: The name of the program (argv[0]).
+ * 
+ * Return: 1 if the shell should continue running, 0 if it should terminate.
+ */
+int execute_command_line(char *line, char *program_name)
+{
+    char *args[MAX_ARGS];
+    int status = 1;
+
+    custom_tokenize(line, args);
+
+    if (args[0] == NULL)
+    {
+        return (1); /* Empty command */
+    }
+
+    /* Handle logical operators '&&' and '||' */
+    if (strchr(line, '&') || strchr(line, '|'))
+    {
+        return handle_logical_operators(line, program_name);
+    }
+
+    /* Check for variable replacements */
+    replace_variables(args);
+
+    status = execute_command(args, program_name);
+    return status;
+}
+
+/**
+ * handle_logical_operators - Handles '&&' and '||' logical operators.
+ * @line: The input line containing the command.
+ * @program_name: The name of the program (argv[0]).
+ * 
+ * Return: 1 if the shell should continue running, 0 if it should terminate.
+ */
+int handle_logical_operators(char *line, char *program_name)
+{
+    char *left, *right;
+    int status;
+
+    /* Handle '&&' */
+    left = strtok(line, "&&");
+    if (left != NULL)
+    {
+        right = strtok(NULL, "&&");
+        if (right != NULL)
+        {
+            status = execute_command_line(left, program_name);
+            if (status == 1)
+            {
+                return execute_command_line(right, program_name);
+            }
+            return status;
+        }
+    }
+
+    /* Handle '||' */
+    left = strtok(line, "||");
+    if (left != NULL)
+    {
+        right = strtok(NULL, "||");
+        if (right != NULL)
+        {
+            status = execute_command_line(left, program_name);
+            if (status != 1)
+            {
+                return execute_command_line(right, program_name);
+            }
+            return status;
+        }
+    }
+
+    return execute_command_line(line, program_name);
+}
+
+/**
+ * replace_variables - Handles variable replacements in the arguments.
+ * @args: The array of arguments.
+ */
+void replace_variables(char **args)
+{
+    for (int i = 0; args[i] != NULL; i++)
+    {
+        if (strcmp(args[i], "$$") == 0)
+        {
+            char pid_str[12];
+            snprintf(pid_str, 12, "%d", getpid());
+            free(args[i]);
+            args[i] = strdup(pid_str);
+        }
+        else if (strcmp(args[i], "$?") == 0)
+        {
+            char status_str[12];
+            snprintf(status_str, 12, "%d", WEXITSTATUS(last_exit_status));
+            free(args[i]);
+            args[i] = strdup(status_str);
+        }
+        else if (args[i][0] == '$' && args[i][1] != '\0')
+        {
+            char *env_value = getenv(args[i] + 1);
+            if (env_value)
+            {
+                free(args[i]);
+                args[i] = strdup(env_value);
+            }
+        }
+    }
 }
 
 /**
@@ -136,6 +212,13 @@ int execute_command(char **args, char *program_name)
     if (strcmp(args[0], "env") == 0)
     {
         print_env();
+        return (1);
+    }
+
+    /* Handle the alias built-in */
+    if (strcmp(args[0], "alias") == 0)
+    {
+        handle_alias(args);
         return (1);
     }
 
@@ -190,69 +273,9 @@ int execute_command(char **args, char *program_name)
     else
     {
         wait(&status);
+        last_exit_status = status; /* Save the exit status */
     }
 
     free(cmd_path);
     return (1);
-}
-
-/**
- * set_env - Initialize or modify an environment variable.
- * @name: Name of the environment variable.
- * @value: Value to set.
- */
-void set_env(const char *name, const char *value)
-{
-    if (setenv(name, value, 1) == -1)
-    {
-        perror("setenv");
-    }
-}
-
-/**
- * unset_env - Remove an environment variable.
- * @name: Name of the environment variable.
- */
-void unset_env(const char *name)
-{
-    if (unsetenv(name) == -1)
-    {
-        perror("unsetenv");
-    }
-}
-
-/**
- * change_directory - Changes the current directory.
- * @path: Path to the directory.
- */
-void change_directory(const char *path)
-{
-    char *new_path;
-    char cwd[MAX_PATH_LEN];
-
-    if (!path || strcmp(path, "~") == 0)
-    {
-        new_path = getenv("HOME");
-    }
-    else if (strcmp(path, "-") == 0)
-    {
-        new_path = getenv("OLDPWD");
-    }
-    else
-    {
-        new_path = strdup(path);
-    }
-
-    if (chdir(new_path) != 0)
-    {
-        perror("cd");
-    }
-    else
-    {
-        setenv("OLDPWD", getenv("PWD"), 1);
-        setenv("PWD", getcwd(cwd, sizeof(cwd)), 1);
-    }
-
-    if (new_path != path)
-        free(new_path);
 }
